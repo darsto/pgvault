@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta charset="UTF-8">
+		<title>PG Item Vault</title>
+		<link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+		<link href="fonts/fontawesome-webfont.woff2" as="font" crossorigin="" type="font/woff2">
+		<link rel="stylesheet" type="text/css" href="css/style.css">
+		<link rel="stylesheet" type="text/css" href="css/main.css">
+		<link rel="stylesheet" href="css/font-awesome.min.css">
+		<script src="config.js"></script>
+		<script src="js/template.js"></script>
+		<script src="js/util.js"></script>
+		<script src="js/hover.js"></script>
+		<script src="js/context_menu.js"></script>
+		<script src="js/modal.js"></script>
+		<script src="js/sw_manager.js"></script>
+		<script src="js/main.js"></script>
+	</head>
+	<body>
+		<div id="content">
+			<div class="header">
+				<div class="title">
+					<span>PG Item Vault</span>
+				</div>
+				<a href="javascript:void(0);" onclick="Modal.open('about.tpl')">
+					<span>What is it?</span>
+				</a>
+				<a href="https://discord.gg/pEEQcGgcVG" target="_blank" rel="nofollow noopener noreferrer" >
+					<span>Discord (help & feedback)</span>
+				</a>
+			</div>
+			<div id="page">
+				<div class="frame">
+					<!-- Dummy contents; will be replaced by main.tpl -->
+				</div>
+			</div>
+			<div class="footer">
+				<span>Page updated <span id="vault_ver">-</span></span>
+				|
+				<span>PG version <span id="pg_ver">-</span></span>
+				|
+				<a href="javascript:void(0);" onclick="Modal.open('data_safety.tpl')">About data safety</a>
+				|
+				Some portions copyright 2024 Elder Game, LLC.
+				|
+				<a href="https://github.com/darsto/pgvault">Source code @ Github</a>
+			</div>
+		</div>
+		<div id="overlays"></div>
+	</body>
+</html>

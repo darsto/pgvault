@@ -1,0 +1,83 @@
+html,body,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,address,big,cite,code,q,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td,canvas,embed,figure,figcaption,audio,video {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+}
+
+html {
+    box-sizing: border-box;
+}
+
+*,*::before,*::after {
+    box-sizing: inherit;
+    min-width: 0
+}
+
+picture[data-pg-item-id] {
+    position: relative;
+}
+
+picture[data-pg-item-id] > img {
+    width: 32px;
+    height: 32px;
+}
+
+picture[data-pg-item-count]::after {
+    content: attr(data-pg-item-count);
+    position: absolute;
+    left: 50%;
+    top: 14px;
+    transform: translateX(-50%);
+    font-size: 14px;
+    text-shadow: -1px -1px 2px black, 1px 1px 2px black;
+}
+
+picture[data-pg-item-count="1"]::after {
+    content: none;
+}
+
+a:link { color: lightskyblue; }
+a:visited { color: lightskyblue; }
+a:hover { color: inherit; }
+a:active { color: #cce9fc; text-decoration:none; font-weight:normal; }
+
+.button {
+    background: #aaaaaa;
+    border: 1px solid #cccccc;
+    border-radius: 2px;
+    color: black;
+    padding: 1px 6px;
+    cursor: pointer;
+}
+
+.button > .dots {
+    display: inline-block;
+    text-align: center;
+    border: 1px solid #00000000;
+}
+
+.button > span + .dots {
+    width: 20px;
+    margin-left: 5px;
+    margin-right: -5px;
+}
+
+.button.add {
+    width: 25px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.button.add > .dots > i {
+    margin-top: 5px;
+}
+
+.button:hover {
+    background: #bbbbbb;
+}
+
+.button.add {
+    padding: 0;
+}
