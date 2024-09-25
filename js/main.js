@@ -4,8 +4,6 @@
 
 'use strict';
 
-const PG_DATA = {};
-
 const pg_init = async () => {
 	await SW_LOADED;
 	const sw_up_to_date = await update_sw();
@@ -65,26 +63,33 @@ const update_sw = async () => {
 
 	if (sw_ver != pg_ver) {
 		await post("/sw/ver", { ver: pg_ver }, { type: "text" });
+		return sw_ver == 0;
 	}
 
+	return true;
 }
 
 class MainPage {
 	constructor(name) {
 		this.name = name;
+
+		const preferences = JSON.parse(localStorage.getItem("preferences") || "{}");
 		this.data = {
 			page: this,
 			characters: new Map(),
+			preferences: {
+				sort_by_storage: preferences.sort_by_storage ?? true,
+			},
+			query: "",
 		};
 
-		this.query = "";
-		this.hudden_storages = JSON.parse(localStorage.getItem("hidden_storages") || "[]");
+		//this.hidden_storages = JSON.parse(localStorage.getItem("hidden_storages") || "[]");
 		this.saved_files = JSON.parse(localStorage.getItem("uploaded") || "{}");
 	}
 
 	async install(page_el) {
 		this.tpl = await load_tpl_once(this.name);
-		const el = await this.tpl.run(this.data);
+		this.el = await this.tpl.run(this.data);
 
 		for (const filename in this.saved_files) {
 			try {
@@ -98,7 +103,7 @@ class MainPage {
 		this.reload_items();
 
 		for (const c of page_el.children) { c.remove(); }
-		page_el.appendChild(el);
+		page_el.appendChild(this.el);
 	}
 
 	async on_file_upload(ev) {
@@ -142,11 +147,15 @@ class MainPage {
 				};
 				storages.set(item.StorageVault, storage);
 			}
-			storage.items.add({ id: item.TypeID, count: item.StackSize, name: item.Name });
+			storage.items.add({
+				id: item.TypeID, count: item.StackSize, name: item.Name
+			});
 		}
 
+		const order = this.data.characters.size + 1;
 		this.data.characters.set(character, {
 			name: character,
+			order,
 			filename,
 			timestamp: timestamp,
 			storages,
@@ -165,13 +174,13 @@ class MainPage {
 		this.data.latest_char = latest_char;
 
 		this.tpl.reload('*');
+		this.update_filters(this.data.preferences);
 	}
 
 	search_oninput(input_el) {
-		const text = input_el.value;
-		this.query = text;
+		const query = input_el.value;
 
-		this.tpl.reload('.items');
+		this.update_filters({ query });
 	}
 
 	filter_items(item_set) {
@@ -179,24 +188,76 @@ class MainPage {
 			return item_set;
 		}
 
-		let items = [...item_set];
-		return items.filter((item) => item.name.includes(this.query))
+		const query_lc = this.query.toLowerCase();
+		const items = [...item_set];
+		return items.filter((item) => item.name.toLowerCase().includes(query_lc))
 	}
 
 	char_onclick(el, event) {
 		const charname = el.dataset.charname;
 		const char = this.data.characters.get(charname);
 
-		ContextMenu.toggle(el, [
-			{ name: "Date: " + char.timestamp },
-			{
-				name: "Remove", fn: () => {
-					this.data.characters.delete(charname);
-					delete this.saved_files[char.filename];
-					this.reload_items();
+		ContextMenu.toggle(el, {
+			entries: [
+				{ name: "Date: " + char.timestamp },
+				{
+					name: "Remove", fn: () => {
+						this.data.characters.delete(charname);
+						delete this.saved_files[char.filename];
+						this.reload_items();
+					}
+				}
+			]
+		}, event)
+	}
+
+	async sort_onclick(el, event) {
+		ContextMenu.toggle(el, {
+			tpl: await load_tpl_once("sort_menu.tpl"),
+			tpl_data: { page: this }
+		}, event)
+	}
+
+	async update_filters(updates = undefined) {
+		const item_els = this.el.querySelectorAll(".items picture[data-pg-item-id]");
+		let do_save_preferences = false;
+
+		if (updates.query !== undefined) {
+			this.data.query = updates.query;
+			const query_lc = this.data.query.toLowerCase();
+			for (const item_el of item_els) {
+				const matches = item_el.dataset.pgItemName.toLowerCase().includes(query_lc);
+				if (matches) {
+					item_el.classList.remove("hidden");
+				} else {
+					item_el.classList.add("hidden");
 				}
 			}
-		], event)
+		}
+
+		if (updates.sort_by_storage !== undefined) {
+			this.data.preferences.sort_by_storage = updates.sort_by_storage;
+			do_save_preferences = true;
+
+			const container_els = this.el.querySelectorAll(".items .container");
+			for (const container_el of container_els) {
+				const char_name = container_el.dataset.pgCharName;
+				const char_order = this.data.characters.get(char_name)?.order ?? 100;
+				const storage_name = container_el.dataset.pgName;
+				const storage_order = PG_DATA.storage_order[storage_name] ?? 100;
+				let order;
+				if (updates.sort_by_storage) {
+					order = storage_order * 1000 + char_order;
+				} else {
+					order = char_order * 1000 + storage_order
+				}
+				container_el.style = "order: " + order;
+			}
+		}
+
+		if (do_save_preferences) {
+			localStorage.setItem("preferences", JSON.stringify(this.data.preferences));
+		}
 	}
 }
 

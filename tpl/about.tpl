@@ -19,10 +19,12 @@
 				<img src="{@ROOT_URL}/images/pg_export_storage_ss.png">
 			</div>
 			<span>
-				Once exported, click the "+" button on the website and select the reports. (You can select multiple at once.)<br>They're usually contained in `C:\\Users\\...\\AppData\\LocalLow\\Elder Game\\Project Gorgon\\Reports` with a filename `&lt;charname&gt;_items_&lt;date&gt;.json`.
+				Once exported, click the "+" button on the website and select the reports. (You can select multiple at once.)<br>They're contained in<br>
+				<b>%AppData%\\..\\LocalLow\\Elder Game\\Project Gorgon\\Reports</b><br>
+				with a filename "&lt;charname&gt;_items_&lt;date&gt;.json".
 			</span>
 			<span>
-				If you upload multiple reports for the same character, the newest one will always override any previous ones.
+				If you upload multiple reports for the same character, the newest one will always override any previous reports.
 			</span>
 			<span>
 				Shared storage is included in every character's report. To avoid showing it multiple times, it will be shown only from the report with latest timestamp. Shared storage will be printed only once - it is assumed that all imported .json files come from a single account.

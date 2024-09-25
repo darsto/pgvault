@@ -18,8 +18,8 @@
     </div>
 
     <div class="search">
-        <input autocomplete="off" type="text" class="search" placeholder="Item search..." value="{@$page.query}" oninput="{serialize $page}.search_oninput(this);">
-        <div class="button" style="display: none;">
+        <input autocomplete="off" type="text" class="search" placeholder="Item search..." value="{@$query || ""}" oninput="{serialize $page}.search_oninput(this);">
+        <div class="button" onclick="{serialize $page}.sort_onclick(this, event)">
             <span>Sort</span>
             <span class="dots">
                 <i class="fa fa-sort"></i>
@@ -28,48 +28,32 @@
     </div>
 
     <div class="items">
-        {assign sort_by_char = false}
         {assign char_idx = 0}
-        {assign storage_order_by_name = {\}}
         {foreach char of $characters.values()}
-            {assign storage_idx = 0}
             {foreach storage of $char.storages.values()}
                 {if $storage.name?.startsWith("*AccountStorage_") && $char != $latest_char}
                     {continue}
                 {/if}
-                {if $sort_by_char}
-                    {assign order = $char_idx * 1000 + $storage_idx}
+                {assign storage_name = $storage.name || "Inventory"}
+                {if $storage_name.startsWith("*AccountStorage_")}
+                    {assign char_str = '<span title="Taken from ' + $char.name + '\'s report">(Account Storage)</span>'}
+                    {assign storage_str = $storage_name.substring("*AccountStorage_".length)}
                 {else}
-                    {if $storage_order_by_name[$storage.name] === undefined}
-                        {$storage_order_by_name[$storage.name] = Object.keys($storage_order_by_name).length}
-                    {/if}
-                    {assign order = $storage_order_by_name[$storage.name]}
+                    {assign char_str = $char.name}
+                    {assign storage_str = $storage_name}
                 {/if}
 
-                {if $storage.name?.startsWith("*AccountStorage_")}
-                    {assign char_name = '<span title="Taken from ' + $char.name + '\'s report">(Account Storage)</span>'}
-                    {assign storage_name = $storage.name.substring("*AccountStorage_".length)}
-                {else}
-                    {assign char_name = $char.name}
-                    {assign storage_name = $storage.name || "Inventory"}
-                {/if}
-
-                {hascontent}
-                    <div class="container" style="order: {@$order}">
-                        <div class="header">
-                            <span class="character">{@$char_name}</span>
-                            <span class="name">{@$storage_name}</span>
-                        </div>
-                        <div class="body">
-                            {content}
-                                {foreach item of $page.filter_items($storage.items)}
-                                    {@$page.gen_item($item)}
-                                {/foreach}
-                            {/content}
-                        </div>
+                <div class="container" data-pg-char-name="{@$char.name}" data-pg-name="{@$storage_name}">
+                    <div class="header">
+                        <span class="character">{@$char_str}</span>
+                        <span class="name">{@$storage_str}</span>
                     </div>
-                {/hascontent}
-                {assign storage_idx = $storage_idx + 1}
+                    <div class="body">
+                        {foreach item of $page.filter_items($storage.items)}
+                            {@$page.gen_item($item)}
+                        {/foreach}
+                    </div>
+                </div>
             {/foreach}
             {assign char_idx = $char_idx + 1}
         {/foreach}

@@ -52,10 +52,11 @@ class ItemHover {
         }, { passive: true });
 
 
-        document.addEventListener('scroll', (e) => {
+        document.querySelector("#content").addEventListener('scroll', (e) => {
             /* since the tooltip is position: fixed,
              * it won't scroll, and will look off. Just hide it */
             hover.tpl.reload('*', {});
+            hover.prev_el = undefined;
         });
     }
 }

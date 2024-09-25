@@ -101,7 +101,11 @@ body {
     flex-wrap: wrap;
 }
 
-.frame > .items > .container > .body:empty {
+.frame > .items > .container:not(:has(picture:not(.hidden))) {
+    display: none;
+}
+
+.frame > .items > .container > body:not(:has(picture:not(.hidden))) {
     margin-top: 0;
 }
 

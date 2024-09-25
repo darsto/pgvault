@@ -8,7 +8,7 @@ class Modal {
 	static prev_modal = null;
 
 	static async open(tpl_name) {
-		let modal = new Modal();
+		const modal = new Modal();
 		modal.tpl = await load_tpl_once(tpl_name);
 
 		const inner_el = await modal.tpl.run({ page: modal });

@@ -91,13 +91,17 @@ class Template {
 		this.func = new Function('tpl', 'local', f_text);
 	}
 
-	run(args = {}) {
+	run_raw(args = {}) {
 		if (!this.func) {
 			this.compile();
 		}
 
 		this.args = args;
-		const html_str = this.func(this, args);
+		return this.func(this, args);
+	}
+
+	run(args = {}) {
+		const html_str = this.run_raw(args);
 
 		const el = document.createElement('div');
 		el.jsTemplate = this;

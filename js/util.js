@@ -138,6 +138,28 @@ const load_tpl_once = async (name) => {
     return new Template(name);
 }
 
+const new_shadow_tpl_el = async (tpl_name, tpl_data) => {
+	const obj = {};
+	obj.tpl = await load_tpl_once(tpl_name);
+
+	const inner_el = await obj.tpl.run({ obj: obj, ...tpl_data });
+	obj.dom = document.createElement('div');
+	obj.shadow = obj.dom.attachShadow({ mode: 'open' });
+	obj.shadow.appendChild(inner_el);
+
+	const onload_event = dom_prepend_async(obj.shadow, [
+		new_css(ROOT_URL + "/css/style.css"),
+		new_css(ROOT_URL + "/css/font-awesome.min.css"),
+	]);
+
+	obj.dom.style = "display: none";
+	onload_event.then(() => {
+		obj.dom.style = "";
+	});
+
+	return obj;
+}
+
 const json_file_chooser = () => {
     return new Promise(resolve => {
         const input = document.createElement('input');

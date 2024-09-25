@@ -67,7 +67,6 @@ a:active { color: #cce9fc; text-decoration:none; font-weight:normal; }
 .button.add {
     width: 25px;
     text-align: center;
-    cursor: pointer;
 }
 
 .button.add > .dots > i {
@@ -80,4 +79,16 @@ a:active { color: #cce9fc; text-decoration:none; font-weight:normal; }
 
 .button.add {
     padding: 0;
+}
+
+.button.disabled,
+.button.disabled:hover {
+    font-style: italic;
+    cursor: text;
+    background: #e1e1e1;
+    color: #777070;
+}
+
+.hidden {
+    display: none;
 }
