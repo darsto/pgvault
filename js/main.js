@@ -8,15 +8,22 @@ const PG_DATA = {};
 
 const pg_init = async () => {
 	await SW_LOADED;
-	await update_sw();
+	const sw_up_to_date = await update_sw();
+	if (!sw_up_to_date) {
+		/* we've purged the cache from SW, but the resources we've fetched
+		 * so far  could be outdated as well -> reload to get the latest
+		 * version of everything */
+		window.location.reload();
+		return;
+	}
 
-	let items = await get('/sw/items', { type: "json" });
+	const items = await get('/sw/items', { type: "json" });
 	PG_DATA.items = items.data;
 
 	await ItemHover.register();
 	await ContextMenu.register();
 
-	let page = new MainPage("main.tpl");
+	const page = new MainPage("main.tpl");
 	await page.install(document.querySelector("#page"));
 
 	document.querySelector('.header').addEventListener('mousedown', (e) => {
@@ -28,11 +35,11 @@ const pg_init = async () => {
 };
 
 const update_sw = async () => {
-	let sw_resp = await get("/sw/ver", { type: "text" });
+	const sw_resp = await get("/sw/ver", { type: "text" });
 	let sw_ver = 0;
 	let vault_ver = 0;
 	try {
-		let json = JSON.parse(sw_resp.data);
+		const json = JSON.parse(sw_resp.data);
 		sw_ver = json.sw_ver;
 		vault_ver = new Date(json.vault_ver).toLocaleDateString("en-US", { timeZone: "UTC" });
 	} catch (e) {
@@ -41,13 +48,13 @@ const update_sw = async () => {
 
 	const pg_resp = await get(ROOT_URL + "/pgver.php", { type: "text" });
 	if (!pg_resp.ok) {
-		if (sw_ver == 0) {ia
+		if (sw_ver == 0) {
 			console.error("Can't connect to projectgorgon.com and no local version saved");
 			throw new Error("Can't connect to projectgorgon.com and no local version saved");
 		}
 
 		console.log("Can't connect to projectgorgon.com; Using local version " + sw_ver);
-		return;
+		return true;
 	}
 
 	const pg_ver = parseInt(pg_resp.data);
