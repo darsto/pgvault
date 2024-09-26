@@ -242,18 +242,19 @@ register_url('/sw/items', async (req, args) => {
 const sw_ver_get = async (req) => {
 	const date = new Date();
 	const runtime = await runtime_data();
-	let localver = runtime?.ver || 0;
+	const prev_localver = runtime?.ver || 0;
+	let new_localver = 0;
 	try {
 		const localver_resp = await fetch(ROOT_URL + '/localver.php');
-		localver = parseInt(await localver_resp.text());
+		new_localver = parseInt(await localver_resp.text());
 	} catch (e) {}
-	console.log("/sw/ver: Local version " + localver);
+	console.log("/sw/ver: Local version " + new_localver);
 
 	/* remove stale precaches and get cached_pg_ver */
 	let cached_pg_ver = 0;
 	const cache_names = await caches.keys();
 	for (const name of cache_names) {
-		if (req.method === "GET" && name.startsWith("precache-v") && name != "precache-v" + localver) {
+		if (req.method === "GET" && name.startsWith("precache-v") && name != "precache-v" + new_localver) {
 			console.log("/sw/ver: Deleting stale '" + name + "'");
 			caches.delete(name);
 		}
@@ -266,11 +267,12 @@ const sw_ver_get = async (req) => {
 
 	const ver = {
 		sw_ver: cached_pg_ver,
-		vault_ver: localver,
+		prev_vault_ver: prev_localver,
+		vault_ver: new_localver,
 	};
 
-	const cache = await caches.open("precache-v" + localver);
-	RUNTIME_DATA = { ver: localver, cache };
+	const cache = await caches.open("precache-v" + new_localver);
+	RUNTIME_DATA = { ver: new_localver, cache };
 
 	return new Response(JSON.stringify(ver), { status: 200, statusText: 'OK',
 		headers: { 'Content-Type': 'application/json', 'Date': date.toGMTString() }

@@ -39,6 +39,11 @@ const update_sw = async () => {
 	try {
 		const json = JSON.parse(sw_resp.data);
 		sw_ver = json.sw_ver;
+
+		if (!json.prev_vault_ver || json.vault_ver != json.prev_vault_ver) {
+			return false;
+		}
+
 		vault_ver = new Date(json.vault_ver).toLocaleDateString("en-US", { timeZone: "UTC" });
 	} catch (e) {
 		console.error("Failed to fetch local cached version");
@@ -63,7 +68,6 @@ const update_sw = async () => {
 
 	if (sw_ver != pg_ver) {
 		await post("/sw/ver", { ver: pg_ver }, { type: "text" });
-		return sw_ver == 0;
 	}
 
 	return true;
