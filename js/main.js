@@ -139,13 +139,14 @@ class MainPage {
 
 		let storages = new Map();
 		for (const item of json.Items) {
-			let storage = storages.get(item.StorageVault);
+			let storage_name = item.StorageVault || "Inventory";
+			let storage = storages.get(storage_name);
 			if (!storage) {
 				storage = {
-					name: item.StorageVault,
+					name: storage_name,
 					items: new Set(),
 				};
-				storages.set(item.StorageVault, storage);
+				storages.set(storage_name, storage);
 			}
 			storage.items.add({
 				id: item.TypeID, count: item.StackSize, name: item.Name
@@ -219,33 +220,85 @@ class MainPage {
 	}
 
 	async update_filters(updates = undefined) {
-		const item_els = this.el.querySelectorAll(".items picture[data-pg-item-id]");
 		let do_save_preferences = false;
 
 		if (updates.query !== undefined) {
 			this.data.query = updates.query;
-			const query_lc = this.data.query.toLowerCase();
-			for (const item_el of item_els) {
-				const matches = item_el.dataset.pgItemName.toLowerCase().includes(query_lc);
-				if (matches) {
-					item_el.classList.remove("hidden");
-				} else {
-					item_el.classList.add("hidden");
+			const query = this.data.query;
+			// we calculate get max possible score without the appended whitespace
+			// (the appended whitespace is only used to pop the exact matching words
+			// higher, and it must not cause any items to be filtered-out)
+			const max_score = string_similarity(query, query);
+
+			let max_typos_penalty;
+			if (query.length > 12) {
+				// 3 lowercase chars can be mistyped
+				// or 1 completely unmatched uppercase char + 2 char wrong case
+				max_typos_penalty = 7;
+			} else if (query.length > 10) {
+				// 3 lowercase chars can be mistyped
+				// or 1 completely unmatched uppercase char + 2 char wrong case
+				max_typos_penalty = 6;
+			} else if (query.length > 6) {
+				// 2 lowercase chars can be mistyped
+				max_typos_penalty = 4;
+			} else if (query.length > 4) {
+				// 3 chars can be wrong case,
+				// or 1 lowercase char can be mistyped + 1 char wrong case
+				max_typos_penalty = 3;
+			} else if (query.length > 2) {
+				// 2 chars can be wrong case
+				// or 1 lowercase char can be mistyped
+				max_typos_penalty = 2;
+			} else if (query.length > 0) {
+				// 1 char can be wrong case ('s' vs 'S')
+				max_typos_penalty = 1;
+			} else {
+				max_typos_penalty = 0;
+			}
+			const min_score = max_score - max_typos_penalty;
+			const do_append_whitespace = query.length > 3
+
+			const container_els = this.el.querySelectorAll(".items .container");
+			for (const container_el of container_els) {
+				const char_name = container_el.dataset.pgCharName;
+				let storage_name = container_el.dataset.pgName;
+				const char = this.data.characters.get(char_name);
+				const storage = char.storages.get(storage_name);
+
+				const body_el = container_el.querySelector(".body");
+				let max_score = 0;
+				for (const item_el of body_el.children) {
+					const score = string_similarity(query, item_el.dataset.pgItemName, do_append_whitespace);
+					max_score = Math.max(max_score, score);
+					if (score >= min_score) {
+						item_el.classList.remove("hidden");
+					} else {
+						item_el.classList.add("hidden");
+					}
+					item_el.style = "order: " + -score;
 				}
+				container_el.style = "order: " + -max_score;
 			}
 		}
 
 		if (updates.sort_by_storage !== undefined) {
 			this.data.preferences.sort_by_storage = updates.sort_by_storage;
 			do_save_preferences = true;
+		}
 
+		if (updates.sort_by_storage !== undefined || updates.query === "") {
 			const container_els = this.el.querySelectorAll(".items .container");
 			for (const container_el of container_els) {
 				const char_name = container_el.dataset.pgCharName;
-				const char_order = this.data.characters.get(char_name)?.order ?? 100;
-				const storage_name = container_el.dataset.pgName;
-				const storage_order = PG_DATA.storage_order[storage_name] ?? 100;
+				let storage_name = container_el.dataset.pgName;
+
+				const char = this.data.characters.get(char_name);
+				const storage = char.storages.get(storage_name);
+
 				let order;
+				const char_order = char.order;
+				const storage_order = PG_DATA.storage_order[storage.name] ?? 100;
 				if (updates.sort_by_storage) {
 					order = storage_order * 1000 + char_order;
 				} else {

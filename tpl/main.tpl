@@ -18,7 +18,7 @@
     </div>
 
     <div class="search">
-        <input autocomplete="off" type="text" class="search" placeholder="Item search..." value="{@$query || ""}" oninput="{serialize $page}.search_oninput(this);">
+        <input autocomplete="off" type="text" class="search" placeholder="Item search..." value="{@$query}" oninput="{serialize $page}.search_oninput(this);">
         <div class="button" onclick="{serialize $page}.sort_onclick(this, event)">
             <span>Sort</span>
             <span class="dots">
@@ -34,16 +34,15 @@
                 {if $storage.name?.startsWith("*AccountStorage_") && $char != $latest_char}
                     {continue}
                 {/if}
-                {assign storage_name = $storage.name || "Inventory"}
-                {if $storage_name.startsWith("*AccountStorage_")}
+                {if $storage.name.startsWith("*AccountStorage_")}
                     {assign char_str = '<span title="Taken from ' + $char.name + '\'s report">(Account Storage)</span>'}
-                    {assign storage_str = $storage_name.substring("*AccountStorage_".length)}
+                    {assign storage_str = $storage.name.substring("*AccountStorage_".length)}
                 {else}
                     {assign char_str = $char.name}
-                    {assign storage_str = $storage_name}
+                    {assign storage_str = $storage.name}
                 {/if}
 
-                <div class="container" data-pg-char-name="{@$char.name}" data-pg-name="{@$storage_name}">
+                <div class="container" data-pg-char-name="{@$char.name}" data-pg-name="{@$storage.name}">
                     <div class="header">
                         <span class="character">{@$char_str}</span>
                         <span class="name">{@$storage_str}</span>
