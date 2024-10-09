@@ -87,7 +87,6 @@ class MainPage {
 			query: "",
 		};
 
-		//this.hidden_storages = JSON.parse(localStorage.getItem("hidden_storages") || "[]");
 		this.saved_files = JSON.parse(localStorage.getItem("uploaded") || "{}");
 	}
 
@@ -179,7 +178,12 @@ class MainPage {
 		this.data.latest_char = latest_char;
 
 		this.tpl.reload('*');
-		this.update_filters(this.data.preferences);
+		const filters = {};
+		Object.assign(filters, this.data.preferences);
+		if (this.data.query) {
+			filters.query = this.data.query;
+		}
+		this.update_filters(filters);
 	}
 
 	search_oninput(input_el) {
@@ -291,7 +295,7 @@ class MainPage {
 			do_save_preferences = true;
 		}
 
-		if (updates.sort_by_storage !== undefined || updates.query === "") {
+		if (updates.query === "" || (!this.data.query && updates.sort_by_storage !== undefined)) {
 			const container_els = this.el.querySelectorAll(".items .container");
 			for (const container_el of container_els) {
 				const char_name = container_el.dataset.pgCharName;
