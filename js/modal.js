@@ -7,11 +7,11 @@
 class Modal {
 	static prev_modal = null;
 
-	static async open(tpl_name) {
+	static async open(tpl_name, tpl_args = null) {
 		const modal = new Modal();
 		modal.tpl = await load_tpl_once(tpl_name);
 
-		const inner_el = await modal.tpl.run({ page: modal });
+		const inner_el = await modal.tpl.run({ page: modal, ...tpl_args });
 
 		if (Modal.prev_modal) {
 			Modal.prev_modal.close()
@@ -36,6 +36,38 @@ class Modal {
 	}
 
 	close() {
+		if (this.onclose) {
+			this.onclose();
+		}
 		this.dom.remove();
+	}
+}
+
+class ModalConfirm {
+	static async open(header, content) {
+		const modal = await Modal.open('confirm.tpl', { header, content });
+		await new Promise((resolve) => {
+			modal.onclose = resolve;
+		});
+		return modal.confirmed ?? false;
+	}
+}
+
+class ModalLoader {
+	static el = null;
+
+	static open(text) {
+		if (!ModalLoader.el) {
+			ModalLoader.el = document.querySelector("#loader");
+		}
+
+		const el = ModalLoader.el;
+		el.style = "display: block;";
+
+		return {
+			close: () => {
+				el.style = "";
+			}
+		};
 	}
 }

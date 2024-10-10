@@ -1,20 +1,44 @@
 <div class="frame">
     <div class="characters">
-        {assign i = 0}
-        {foreach char of $characters.values()}
-            <div class="button" data-charname="{@$char.name}" onclick="{serialize $page}.char_onclick(this, event)">
-                <span>{@$char.name}</span>
+        {if !$using_reports_dir}
+            {assign i = 0}
+            {foreach char of $characters.values()}
+                <div class="button" data-charname="{@$char.name}" onclick="{serialize $page}.char_onclick(this, event)">
+                    <span>{@$char.name}</span>
+                    <span class="dots">
+                        <i class="fa fa-caret-down"></i>
+                    </span>
+                </div>
+                {$i++}
+            {/foreach}
+            <div class="button add" onclick="{serialize $page}.on_file_upload(event)"
+                    title='Add a single .JSON report'>
+                <span class="dots">
+                    <i class="fa fa-plus"></i>
+                </span>
+            </div>
+            <div class="button" onclick="{serialize $page}.on_link_directory(event)"
+                    title='Add the whole "Reports" directory, so that new generated reports are automatically detected by PG Vault'>
+                <span>Link directory</span>
+                <span class="dots">
+                    <i class="fa fa-folder"></i>
+                </span>
+            </div>
+        {else}
+            <div class="button remove" onclick="{serialize $page}.on_unlink_directory(event)"
+                    title='Stop watching the "Reports" directory'>
+                <span>Using directory: <b>Reports</b></span>
+                <span class="dots">
+                    <i class="fa fa-folder"></i>
+                </span>
+            </div>
+            <div class="button" onclick="{serialize $page}.on_link_settings(this, event)">
+                <span>Filters</span>
                 <span class="dots">
                     <i class="fa fa-caret-down"></i>
                 </span>
             </div>
-            {$i++}
-        {/foreach}
-        <div class="button add" onclick="{serialize $page}.on_file_upload(event)">
-            <span class="dots">
-                <i class="fa fa-plus"></i>
-            </span>
-        </div>
+        {/if}
     </div>
 
     <div class="search">
@@ -22,7 +46,7 @@
         <div class="button" onclick="{serialize $page}.sort_onclick(this, event)">
             <span>Sort</span>
             <span class="dots">
-                <i class="fa fa-sort"></i>
+                <i class="fa fa-caret-down"></i>
             </span>
         </div>
     </div>

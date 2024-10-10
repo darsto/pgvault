@@ -30,6 +30,13 @@ const pg_init = async () => {
 			e.preventDefault();
 		}
 	});
+
+	document.addEventListener("visibilitychange", (e) => {
+		if (document.visibilityState === "visible") {
+			page.on_focus(e);
+		}
+	});
+	window.addEventListener("focus", (e) => page.on_focus(e));
 };
 
 const update_sw = async () => {
@@ -83,6 +90,7 @@ class MainPage {
 			characters: new Map(),
 			preferences: {
 				sort_by_storage: preferences.sort_by_storage ?? true,
+				disabled_chars: preferences.disabled_chars ?? {},
 			},
 			query: "",
 		};
@@ -94,19 +102,66 @@ class MainPage {
 		this.tpl = await load_tpl_once(this.name);
 		this.el = await this.tpl.run(this.data);
 
-		for (const filename in this.saved_files) {
-			try {
-				const json = this.saved_files[filename];
-				this.add_report(filename, json);
-			} catch (e) {
-				console.error(e);
+		const loader = ModalLoader.open("Initializing");
+
+		let using_reports_dir = false;
+		const preferences = await IDB.open('preferences', 1);
+		if (preferences) {
+			const reports_dir = await preferences.get('reports_dir');
+			if (reports_dir) {
+				await this.parse_reports_dir(reports_dir);
+				using_reports_dir = true;
 			}
 		}
 
+		if (!using_reports_dir) {
+			for (const filename in this.saved_files) {
+				try {
+					const json = this.saved_files[filename];
+					this.add_report(filename, json);
+				} catch (e) {
+					console.error(e);
+				}
+			}
+		}
+
+		this.data.using_reports_dir = using_reports_dir;
+		this.next_reports_dir_scan_ts = Date.now() + 2000;
 		this.reload_items();
 
 		for (const c of page_el.children) { c.remove(); }
 		page_el.appendChild(this.el);
+
+		loader.close();
+	}
+
+	async on_focus(ev) {
+		const ts = Date.now()
+		if (ts <= this.next_reports_dir_scan_ts) {
+			return;
+		}
+		if (!this.data.using_reports_dir) {
+			return;
+		}
+
+		const preferences = await IDB.open('preferences', 1);
+		if (!preferences) {
+			return;
+		}
+
+		const reports_dir = await preferences.get('reports_dir');
+		if (!reports_dir) {
+			return;
+		}
+
+		console.log("Scanning the reports dir");
+		const added_reports = await this.parse_reports_dir(reports_dir);
+		if (added_reports.length) {
+			console.log("Found new json(s) in the Reports dir:", added_reports.join(", "));
+			this.reload_items();
+		}
+
+		this.next_reports_dir_scan_ts = Date.now() + 2000;
 	}
 
 	async on_file_upload(ev) {
@@ -121,6 +176,91 @@ class MainPage {
 			}
 		}
 		this.reload_items();
+	}
+
+	async on_link_directory(ev) {
+		if (this.data.characters.size > 0) {
+			const ok = await ModalConfirm.open("Link directory", "Linking a directory will override all manually added JSONs. Do you want to continue?");
+			if (!ok) {
+				return;
+			}
+		}
+
+		let handle;
+		try {
+			handle = await window.showDirectoryPicker({ id: "pg_reports", mode: "read" });
+		} catch (e) {
+			return;
+		}
+
+		const loader = ModalLoader.open("Reading the directory");
+
+		this.saved_files = {};
+		this.data.characters.clear();
+		this.data.using_reports_dir = true;
+
+		await this.parse_reports_dir(handle);
+		const preferences = await IDB.open('preferences', 1, "readwrite");
+		if (preferences) {
+			preferences.set('reports_dir', handle);
+		}
+		this.reload_items();
+		loader.close();
+	}
+
+	async on_unlink_directory(ev) {
+		this.data.characters.clear();
+		this.data.using_reports_dir = false;
+		this.data.preferences.disabled_chars = {};
+		const preferences = await IDB.open('preferences', 1, "readwrite");
+		if (preferences) {
+			preferences.set('reports_dir', null);
+		}
+		this.reload_items();
+	}
+
+	async parse_reports_dir(dir_handle) {
+		const reports = new Map();
+		for await (const [filename, handle] of dir_handle.entries()) {
+			if (!filename.endsWith(".json")) {
+				continue;
+			}
+
+			// we're only going to parse filenames like:
+			// mfence_items_2024-09-28-09-12-15Z.json
+			const sep_index = filename.lastIndexOf("_items_");
+			if (sep_index <= 0) {
+				continue;
+			}
+
+			const name = filename.substring(0, sep_index);
+			const datetime = filename.substring(sep_index + "_items_".length,
+					filename.length - ".json".length);
+			const iso_datetime = datetime.replace(/-(\d{2})-(\d{2})-(\d{2})Z$/, ' $1:$2:$3Z');
+			const timestamp = Date.parse(iso_datetime);
+
+			const prev_ts = reports.get(name)?.timestamp || 0;
+			if (timestamp > prev_ts) {
+				reports.set(name, { name, timestamp, handle });
+			}
+		}
+
+		let added_reports = [];
+		for (const report of reports.values()) {
+			const prev_char = this.data.characters.get(report.name);
+			let prev_char_ts = 0;
+			if (prev_char) {
+				prev_char_ts = Date.parse(prev_char.timestamp);
+			}
+			if (report.timestamp > prev_char_ts) {
+				const file = await report.handle.getFile();
+				const text = await file.text();
+				const json = JSON.parse(text);
+				this.add_report(report.name, json);
+				added_reports.push(report.name);
+			}
+		}
+		return added_reports;
 	}
 
 	gen_item(item) {
@@ -161,7 +301,7 @@ class MainPage {
 			name: character,
 			order,
 			filename,
-			timestamp: timestamp,
+			timestamp,
 			storages,
 		});
 	}
@@ -171,6 +311,9 @@ class MainPage {
 
 		// We'll show account-shared storage only from the latest report
 		const latest_char = [...this.data.characters.values()].reduce((latest, cur) => {
+			if (this.data.preferences.disabled_chars[cur.name]) {
+				return latest;
+			}
 			const latest_ts = Date.parse(latest.timestamp);
 			const cur_ts = Date.parse(cur.timestamp);
 			return (cur_ts > latest_ts) ? cur : latest;
@@ -227,8 +370,40 @@ class MainPage {
 		}, event)
 	}
 
+	async on_link_settings(el, event) {
+		ContextMenu.toggle(el, {
+			tpl: await load_tpl_once("dir_filters.tpl"),
+			tpl_data: this.data
+		}, event)
+	}
+
+	async on_dir_filter(el) {
+		const charname = el.value;
+		const disabled = !el.checked;
+
+		// we can directly set the preferences here, as reload_items()
+		// will re-apply all settings
+		this.data.preferences.disabled_chars[charname] = disabled;
+		this.reload_items();
+	}
+
 	async update_filters(updates = undefined) {
 		let do_save_preferences = false;
+
+		if (updates.disabled_chars !== undefined) {
+			Object.assign(this.data.preferences.disabled_chars, updates.disabled_chars);
+			const container_els = this.el.querySelectorAll(".items .container");
+			for (const container_el of container_els) {
+				const char_name = container_el.dataset.pgCharName;
+				const disabled = this.data.preferences.disabled_chars[char_name];
+				if (disabled) {
+					container_el.classList.add("hidden");
+				} else {
+					container_el.classList.remove("hidden");
+				}
+			}
+			do_save_preferences = true;
+		}
 
 		if (updates.query !== undefined) {
 			this.data.query = updates.query;
@@ -270,6 +445,10 @@ class MainPage {
 			const container_els = this.el.querySelectorAll(".items .container");
 			for (const container_el of container_els) {
 				const char_name = container_el.dataset.pgCharName;
+				if (this.data.preferences.disabled_chars[char_name]) {
+					continue;
+				}
+
 				let storage_name = container_el.dataset.pgName;
 				const char = this.data.characters.get(char_name);
 				const storage = char.storages.get(storage_name);
@@ -299,6 +478,10 @@ class MainPage {
 			const container_els = this.el.querySelectorAll(".items .container");
 			for (const container_el of container_els) {
 				const char_name = container_el.dataset.pgCharName;
+				if (this.data.preferences.disabled_chars[char_name]) {
+					continue;
+				}
+
 				let storage_name = container_el.dataset.pgName;
 
 				const char = this.data.characters.get(char_name);
