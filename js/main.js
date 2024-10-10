@@ -179,6 +179,11 @@ class MainPage {
 	}
 
 	async on_link_directory(ev) {
+		if (!window.showDirectoryPicker) {
+			await ModalConfirm.open("Link directory", "Opening a directory isn't supported by your browser. It currently works only in Chrome, Edge, and Opera.", { confirmtext: "Ok", cancel: false });
+			return;
+		}
+
 		if (this.data.characters.size > 0) {
 			const ok = await ModalConfirm.open("Link directory", "Linking a directory will override all manually added JSONs. Do you want to continue?");
 			if (!ok) {

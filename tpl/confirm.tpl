@@ -13,8 +13,10 @@
 				{@$content}
 			</span>
 			<div class="footer">
-				<div class="button confirm" onclick="const page = {serialize $page}; page.confirmed = true; page.close();">Continue</div>
-				<div class="button cancel" onclick="{serialize $page}.close()">Cancel</div>
+				<div class="button confirm" onclick="const page = {serialize $page}; page.confirmed = true; page.close();">{@$confirmtext || 'Continue'}</div>
+				{if $cancel}
+					<div class="button cancel" onclick="{serialize $page}.close()">Cancel</div>
+				{/if}
 			</div>
 		</div>
 	</div>

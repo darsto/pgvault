@@ -44,8 +44,8 @@ class Modal {
 }
 
 class ModalConfirm {
-	static async open(header, content) {
-		const modal = await Modal.open('confirm.tpl', { header, content });
+	static async open(header, content, extra_args) {
+		const modal = await Modal.open('confirm.tpl', { header, content, ...extra_args });
 		await new Promise((resolve) => {
 			modal.onclose = resolve;
 		});
