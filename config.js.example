@@ -1,2 +1,4 @@
+// Rename me to config.js
+
 const DEBUG = 0;
 const ROOT_URL = "";
