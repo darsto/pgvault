@@ -268,7 +268,7 @@ class MainPage {
 		return "<picture data-pg-item-id=\"" + item.id + "\" \
 				 data-pg-item-count=\"" + item.count + "\" \
 				 data-pg-item-name=\"" + item.name + "\">\
-					<img src=\"/sw/icon/" + item_data.IconId + "\">\
+					<img src=\"/sw/icon/" + (item_data?.IconId || 0) + "\">\
 				</picture>";
 	}
 
