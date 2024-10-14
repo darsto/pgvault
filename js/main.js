@@ -225,6 +225,33 @@ class MainPage {
 	}
 
 	async parse_reports_dir(dir_handle) {
+		if ((await dir_handle.queryPermission({})) !== 'granted') {
+			let granted = false;
+			await ModalConfirm.open(
+				"\"Reports\" directory access",
+				"PG Vault has lost permissions to access the \"Reports\" directory.<br>\
+						Click <b>Continue</b>, then follow the browser popup to grant the permissions again.",
+				{
+					cancel: false, onclose: async () => {
+						if ((await dir_handle.requestPermission({})) === 'granted') {
+							granted = true;
+						}
+					}
+				}
+			);
+			if (!granted) {
+				await ModalConfirm.open(
+					"\"Reports\" directory access",
+					"Couldn't get permission to access the \"Reports\" directory.<br>\
+							Refresh the page and try again.",
+					{
+						cancel: false
+					}
+				);
+				return;
+			}
+		}
+
 		const reports = new Map();
 		for await (const [filename, handle] of dir_handle.entries()) {
 			if (!filename.endsWith(".json")) {
@@ -240,7 +267,7 @@ class MainPage {
 
 			const name = filename.substring(0, sep_index);
 			const datetime = filename.substring(sep_index + "_items_".length,
-					filename.length - ".json".length);
+				filename.length - ".json".length);
 			const iso_datetime = datetime.replace(/-(\d{2})-(\d{2})-(\d{2})Z$/, ' $1:$2:$3Z');
 			const timestamp = Date.parse(iso_datetime);
 

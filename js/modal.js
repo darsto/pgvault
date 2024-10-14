@@ -32,7 +32,21 @@ class Modal {
 		await onload_event;
 		modal.dom.style = "";
 
+		if (tpl_args?.onclose) {
+			modal.onclose = tpl_args?.onclose
+		}
+
 		return modal;
+	}
+
+	add_onclose(fn) {
+		const prev_onclose = this.onclose;
+		this.onclose = async () => {
+			if (prev_onclose) {
+				await prev_onclose();
+			}
+			await fn();
+		};
 	}
 
 	close() {
@@ -44,10 +58,10 @@ class Modal {
 }
 
 class ModalConfirm {
-	static async open(header, content, extra_args) {
+	static async open(header, content, extra_args = {}) {
 		const modal = await Modal.open('confirm.tpl', { header, content, ...extra_args });
 		await new Promise((resolve) => {
-			modal.onclose = resolve;
+			modal.add_onclose(resolve);
 		});
 		return modal.confirmed ?? false;
 	}
